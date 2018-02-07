@@ -2,7 +2,6 @@
   (:require [status-im.data-store.accounts :as accounts-store]
             [re-frame.core :as re-frame]
             [taoensso.timbre :as log]
-            [status-im.protocol.core :as protocol]
             [status-im.native-module.core :as status]
             [status-im.utils.types :refer [json->clj]]
             [status-im.utils.identicon :refer [identicon]]
@@ -30,7 +29,8 @@
 (re-frame/reg-cofx
   :get-new-keypair!
   (fn [coeffects _]
-    (assoc coeffects :keypair (protocol/new-keypair!))))
+    #_(assoc coeffects :keypair (protocol/new-keypair!))
+    {:public "public" :private "private"}))
 
 (re-frame/reg-cofx
   ::get-all-accounts
@@ -65,29 +65,29 @@
   ::broadcast-account-update
   (fn [{:keys [current-public-key web3 name photo-path status
                updates-public-key updates-private-key]}]
-    (when web3
-      (protocol/broadcast-profile!
-       {:web3    web3
-        :message {:from       current-public-key
-                  :message-id (random/id)
-                  :keypair    {:public  updates-public-key
-                               :private updates-private-key}
-                  :payload    {:profile {:name          name
-                                         :status        status
-                                         :profile-image photo-path}}}}))))
+    #_(when web3
+        (protocol/broadcast-profile!
+         {:web3    web3
+          :message {:from       current-public-key
+                    :message-id (random/id)
+                    :keypair    {:public  updates-public-key
+                                 :private updates-private-key}
+                    :payload    {:profile {:name          name
+                                           :status        status
+                                           :profile-image photo-path}}}}))))
 
 (re-frame/reg-fx
   ::send-keys-update
   (fn [{:keys [web3 current-public-key contacts
                updates-public-key updates-private-key]}]
-    (doseq [id (handlers/identities contacts)]
-      (protocol/update-keys!
-       {:web3    web3
-        :message {:from       current-public-key
-                  :to         id
-                  :message-id (random/id)
-                  :payload    {:keypair {:public  updates-public-key
-                                         :private updates-private-key}}}}))))
+    #_(doseq [id (handlers/identities contacts)]
+        (protocol/update-keys!
+         {:web3    web3
+          :message {:from       current-public-key
+                    :to         id
+                    :message-id (random/id)
+                    :payload    {:keypair {:public  updates-public-key
+                                           :private updates-private-key}}}}))))
 ;;;; Handlers
 
 (defn add-account
@@ -109,17 +109,16 @@
 
 (handlers/register-handler-fx
   ::account-created
-  [re-frame/trim-v (re-frame/inject-cofx :get-new-keypair!)
-   (re-frame/inject-cofx ::get-signing-phrase) (re-frame/inject-cofx ::get-status)]
-  (fn [{:keys [keypair signing-phrase status db] :as cofx} [{:keys [pubkey address mnemonic]} password]]
+  [re-frame/trim-v (re-frame/inject-cofx ::get-signing-phrase) (re-frame/inject-cofx ::get-status)]
+  (fn [{:keys [signing-phrase status db] :as cofx} [{:keys [pubkey address mnemonic]} password]]
     (let [normalized-address (utils.hex/normalize-hex address)
           account            {:public-key          pubkey
                               :address             normalized-address
                               :name                (generate-gfy pubkey)
                               :status              status
                               :signed-up?          true
-                              :updates-public-key  (:public keypair)
-                              :updates-private-key (:private keypair)
+                              :updates-public-key  "public"
+                              :updates-private-key "private"
                               :photo-path          (identicon pubkey)
                               :signing-phrase      signing-phrase
                               :settings            {:wallet {:visible-tokens {:testnet #{:STT} :mainnet #{:SNT}}}}}]

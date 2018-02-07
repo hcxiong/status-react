@@ -1,7 +1,7 @@
-(ns status-im.protocol.web3.inbox
+(ns status-im.transport.inbox
   (:require [re-frame.core :as re-frame]
             [status-im.native-module.core :as status]
-            [status-im.protocol.web3.utils :as web3.utils]
+            [status-im.transport.utils :as web3.utils]
             [taoensso.timbre :as log]))
 
 (def peers (atom #{}))
@@ -51,10 +51,10 @@
   (if (@trusted-peers enode)
     (success-fn true)
     (.markTrustedPeer (web3.utils/shh web3)
-                       enode
-                       (response-handler error-fn (fn [result]
-                                                    (swap! trusted-peers conj enode)
-                                                    (success-fn result))))))
+                      enode
+                      (response-handler error-fn (fn [result]
+                                                   (swap! trusted-peers conj enode)
+                                                   (success-fn result))))))
 
 ;; TODO(dmitryn): use web3 instead of rpc call
 (defn fetch-peers [success-fn error-fn]

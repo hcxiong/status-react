@@ -5,7 +5,6 @@
             [status-im.data-store.contacts :as contacts]
             [status-im.data-store.messages :as messages]
             [status-im.i18n :as i18n]
-            [status-im.protocol.core :as protocol]
             [status-im.utils.handlers :as handlers]
             [status-im.utils.random :as random]))
 
@@ -49,7 +48,7 @@
   ::notify-about-new-members
   (fn [{:keys [current-chat-id selected-participants
                current-public-key chats web3]}]
-    (let [{:keys [name contacts]} (chats current-chat-id)
+    #_(let [{:keys [name contacts]} (chats current-chat-id)
           identities    (map :identity contacts)
 
           {:keys [public private]
@@ -89,7 +88,7 @@
 (re-frame/reg-fx
   ::notify-about-removing
   (fn [{:keys [web3 current-chat-id participants chats current-public-key]}]
-    (let [{:keys [private public] :as new-keypair} (protocol/new-keypair!)
+    #_(let [{:keys [private public] :as new-keypair} (protocol/new-keypair!)
           {:keys [name private-key public-key]
            :as   chat} (get chats current-chat-id)
           old-keypair {:private private-key

@@ -1,9 +1,8 @@
-(ns status-im.chat.handlers 
+(ns status-im.chat.handlers
   (:require [clojure.string :as string]
             [re-frame.core :as re-frame]
             [status-im.chat.models :as models]
             [status-im.i18n :as i18n]
-            [status-im.protocol.core :as protocol]
             [status-im.ui.components.styles :as components.styles]
             [status-im.utils.handlers :as handlers]
             [status-im.utils.random :as random]
@@ -15,19 +14,15 @@
   (re-frame/after (fn [_ _] (re-frame/dispatch [:navigation-replace :home])))
   (handlers/side-effect!
    (fn [{:keys [web3 current-chat-id chats current-public-key]} _]
-     (let [{:keys [public-key private-key public?]} (chats current-chat-id)]
-       (protocol/stop-watching-group!
-        {:web3     web3
-         :group-id current-chat-id})
-       (when-not public?
-         (protocol/leave-group-chat!
+     #_(let [{:keys [public-key private-key public?]} (chats current-chat-id)]
+         (protocol/stop-watching-group!
           {:web3     web3
            :group-id current-chat-id
            :keypair  {:public  public-key
                       :private private-key}
            :message  {:from       current-public-key
-                      :message-id (random/id)}})))
-     (re-frame/dispatch [:remove-chat current-chat-id]))))
+                      :message-id (random/id)}})
+         (re-frame/dispatch [:remove-chat current-chat-id])))))
 
 (handlers/register-handler-fx
   :leave-group-chat?
@@ -42,7 +37,7 @@
    (fn [{:keys [current-public-key web3 chats]}
         [_ {:keys                                [from]
             {:keys [group-id keypair timestamp]} :payload}]]
-     (let [{:keys [private public]} keypair
+     #_(let [{:keys [private public]} keypair
            {:keys [group-admin is-active] :as chat} (get chats group-id)]
        (when (and (= from group-admin
                    (or (nil? chat)
@@ -62,12 +57,12 @@
 (re-frame/reg-fx
   ::start-watching-group
   (fn [{:keys [group-id web3 current-public-key keypair]}]
-    (protocol/start-watching-group!
-     {:web3     web3
-      :group-id group-id
-      :identity current-public-key
-      :keypair  keypair
-      :callback #(re-frame/dispatch [:incoming-message %1 %2])})))
+    #_(protocol/start-watching-group!
+       {:web3     web3
+        :group-id group-id
+        :identity current-public-key
+        :keypair  keypair
+        :callback #(re-frame/dispatch [:incoming-message %1 %2])})))
 
 (handlers/register-handler-fx
   :create-new-public-chat
@@ -92,26 +87,26 @@
 (re-frame/reg-fx
   ::start-listen-group
   (fn [{:keys [new-chat web3 current-public-key]}]
-    (let [{:keys [chat-id public-key private-key contacts name]} new-chat
-          identities (mapv :identity contacts)]
-      (protocol/invite-to-group!
-       {:web3       web3
-        :group      {:id       chat-id
-                     :name     name
-                     :contacts (conj identities current-public-key)
-                     :admin    current-public-key
-                     :keypair  {:public  public-key
-                                :private private-key}}
-        :identities identities
-        :message    {:from       current-public-key
-                     :message-id (random/id)}})
-      (protocol/start-watching-group!
-       {:web3     web3
-        :group-id chat-id
-        :identity current-public-key
-        :keypair  {:public  public-key
-                   :private private-key}
-        :callback #(re-frame/dispatch [:incoming-message %1 %2])}))))
+    #_(let [{:keys [chat-id public-key private-key contacts name]} new-chat
+            identities (mapv :identity contacts)]
+        (protocol/invite-to-group!
+         {:web3       web3
+          :group      {:id       chat-id
+                       :name     name
+                       :contacts (conj identities current-public-key)
+                       :admin    current-public-key
+                       :keypair  {:public  public-key
+                                  :private private-key}}
+          :identities identities
+          :message    {:from       current-public-key
+                       :message-id (random/id)}})
+        (protocol/start-watching-group!
+         {:web3     web3
+          :group-id chat-id
+          :identity current-public-key
+          :keypair  {:public  public-key
+                     :private private-key}
+          :callback #(re-frame/dispatch [:incoming-message %1 %2])}))))
 
 (defn group-name-from-contacts [contacts selected-contacts username]
   (->> (select-keys contacts selected-contacts)
@@ -124,21 +119,21 @@
   [{:keys [current-public-key username]
     :group/keys [selected-contacts]
     :contacts/keys [contacts]} group-name]
-  (let [selected-contacts'  (mapv #(hash-map :identity %) selected-contacts)
-        chat-name (if-not (string/blank? group-name)
-                    group-name
-                    (group-name-from-contacts contacts selected-contacts username))
-        {:keys [public private]} (protocol/new-keypair!)]
-    {:chat-id     (random/id)
-     :public-key  public
-     :private-key private
-     :name        chat-name
-     :color       components.styles/default-chat-color
-     :group-chat  true
-     :group-admin current-public-key
-     :is-active   true
-     :timestamp   (random/timestamp)
-     :contacts    selected-contacts'}))
+  #_(let [selected-contacts'  (mapv #(hash-map :identity %) selected-contacts)
+          chat-name (if-not (string/blank? group-name)
+                      group-name
+                      (group-name-from-contacts contacts selected-contacts username))
+          {:keys [public private]} (protocol/new-keypair!)]
+      {:chat-id     (random/id)
+       :public-key  public
+       :private-key private
+       :name        chat-name
+       :color       components.styles/default-chat-color
+       :group-chat  true
+       :group-admin current-public-key
+       :is-active   true
+       :timestamp   (random/timestamp)
+       :contacts    selected-contacts'}))
 
 (handlers/register-handler-fx
   :create-new-group-chat-and-open

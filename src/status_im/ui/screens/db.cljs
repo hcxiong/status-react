@@ -3,6 +3,7 @@
   (:require [cljs.spec.alpha :as spec]
             [status-im.constants :as constants]
             [status-im.utils.platform :as platform]
+            status-im.transport.db
             status-im.ui.screens.accounts.db
             status-im.ui.screens.contacts.db
             status-im.ui.screens.qr-scanner.db
@@ -161,7 +162,8 @@
                   :browser/browsers
                   :browser/options
                   :new/open-dapp
-                  :navigation/screen-params]
+                  :navigation/screen-params
+                  :transport/chats]
                  :opt-un
                  [::current-public-key
                   ::modal
