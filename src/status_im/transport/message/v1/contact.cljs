@@ -2,7 +2,8 @@
   (:require [status-im.utils.handlers :as handlers]
             [status-im.transport.message.core :as message]
             [status-im.transport.message.v1.protocol :as protocol]
-            [status-im.transport.utils :as transport.utils]))
+            [status-im.transport.utils :as transport.utils]
+            [re-frame.core :as re-frame]))
 
 (defrecord NewContactKey [sym-key message]
   message/StatusMessage
@@ -92,3 +93,19 @@
                                            :topic (transport.utils/get-topic current-public-key)
                                            :chat-id chat-id}}
                          (message/receive message chat-id chat-id)))))
+
+(handlers/register-handler-fx
+  :send-test-message
+  (fn [cofx [this timer chat-id n]]
+    (if (zero? n)
+      (println  "Time: " (str (- (inst-ms (js/Date.)) @timer)))
+      (handlers/merge-fx cofx
+                         {:dispatch [this timer chat-id (dec n)]}
+                         (message/send (ContactMessage. {:content (str n)
+                                                         :content-type "text/plain"
+                                                         :message-type :user-message
+                                                         :clock-value n
+                                                         :timestamp (str (inst-ms (js/Date.)))})
+                                       chat-id)))))
+
+#_(re-frame/dispatch [:send-test-message (atom (inst-ms (js/Date.))) "0x04ae4c56aa22e668fd4659acadf8a141981cbae4b8d8c2d63edbeecc16fca1338c43ae7f2bde4b34f877f41149f97c32f1b4189c3f7f87f1e4d1fa6d833bc0272e" 100])
