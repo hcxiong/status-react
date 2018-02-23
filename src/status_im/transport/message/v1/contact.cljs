@@ -22,11 +22,10 @@
 
 (defrecord ContactRequest [name profile-image address fcm-token]
   message/StatusMessage
-  (send [this chat-id {:keys [db] :as cofx}]
-    (let [{:keys [web3]} db
-          message-id (transport.utils/message-id this)]
+  (send [this chat-id cofx]
+    (let [message-id (transport.utils/message-id this)]
       (handlers/merge-fx cofx
-                         {:shh/get-new-sym-key {:web3 web3
+                         {:shh/get-new-sym-key {:web3 (get-in cofx [:db :web3])
                                                 :chat-id chat-id
                                                 :message this
                                                 :success-event ::send-new-sym-key}}
@@ -42,11 +41,11 @@
 
 (defrecord ContactRequestConfirmed [name profile-image address fcm-token]
   message/StatusMessage
-  (send [this chat-id {:keys [db] :as cofx}]
+  (send [this chat-id cofx]
     (let [message-id (transport.utils/message-id this)]
       (handlers/merge-fx cofx
                          (protocol/requires-ack message-id chat-id)
-                         (protocol/send {:web3    (:web3 db)
+                         (protocol/send {:web3    (get-in cofx [:db :web3])
                                          :chat-id chat-id
                                          :payload this}))))
   (receive [this chat-id signature cofx]
@@ -57,14 +56,14 @@
                            (message/receive-contact-request-confirmation signature
                                                                          this))))))
 
-(defrecord ContactMessage [content]
+(defrecord ContactMessage [content content-type message-type clock-value timestamp]
   message/StatusMessage
-  (send [this chat-id {:keys [db] :as cofx}]
+  (send [this chat-id cofx]
     (protocol/send {:chat-id chat-id
                     :payload this}
                    cofx))
   (receive [this chat-id signature cofx]
-    {:dispatch [:pre-received-message (assoc content
+    {:dispatch [:pre-received-message (assoc (into {} this)
                                              :message-id (transport.utils/message-id this)
                                              :chat-id    chat-id
                                              :from       signature)]}))
@@ -101,11 +100,11 @@
       (println  "Time: " (str (- (inst-ms (js/Date.)) @timer)))
       (handlers/merge-fx cofx
                          {:dispatch [this timer chat-id (dec n)]}
-                         (message/send (ContactMessage. {:content (str n)
-                                                         :content-type "text/plain"
-                                                         :message-type :user-message
-                                                         :clock-value n
-                                                         :timestamp (str (inst-ms (js/Date.)))})
+                         (message/send (map->ContactMessage {:content (str n)
+                                                             :content-type "text/plain"
+                                                             :message-type :user-message
+                                                             :clock-value n
+                                                             :timestamp (str (inst-ms (js/Date.)))})
                                        chat-id)))))
 
 #_(re-frame/dispatch [:send-test-message (atom (inst-ms (js/Date.))) "0x04ae4c56aa22e668fd4659acadf8a141981cbae4b8d8c2d63edbeecc16fca1338c43ae7f2bde4b34f877f41149f97c32f1b4189c3f7f87f1e4d1fa6d833bc0272e" 100])

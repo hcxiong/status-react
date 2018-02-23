@@ -5,29 +5,37 @@
 (deftype NewContactKeyHandler []
   Object
   (tag [this v] "c1")
-  (rep [this {:keys [sym-key message]}] #js [sym-key message]))
+  (rep [this {:keys [sym-key message]}]
+    #js [sym-key message]))
 
 (deftype ContactRequestHandler []
   Object
   (tag [this v] "c2")
-  (rep [this {:keys [name profile-image address fcm-token]}] #js [name profile-image address fcm-token]))
+  (rep [this {:keys [name profile-image address fcm-token]}]
+    #js [name profile-image address fcm-token]))
 
 (deftype ContactRequestConfirmedHandler []
   Object
   (tag [this v] "c3")
-  (rep [this {:keys [name profile-image address fcm-token]}] #js [name profile-image address fcm-token]))
+  (rep [this {:keys [name profile-image address fcm-token]}]
+    #js [name profile-image address fcm-token]))
 
 (deftype ContactMessageHandler []
   Object
   (tag [this v] "c4")
-  (rep [this {:keys [content]}] content))
+  (rep [this {:keys [content content-type message-type clock-value timestamp]}]
+    #js [content content-type message-type clock-value timestamp]))
 
 (def reader (transit/reader :json
                             {:handlers
-                             {"c1" (fn [[sym-key message]] (v1.contact/NewContactKey. sym-key message))
-                              "c2" (fn [[name profile-image address fcm-token]] (v1.contact/ContactRequest. name profile-image address fcm-token))
-                              "c3" (fn [[name profile-image address fcm-token]] (v1.contact/ContactRequestConfirmed. name profile-image address fcm-token))
-                              "c4" (fn [content] (v1.contact/ContactMessage. content))}}))
+                             {"c1" (fn [[sym-key message]]
+                                     (v1.contact/NewContactKey. sym-key message))
+                              "c2" (fn [[name profile-image address fcm-token]]
+                                     (v1.contact/ContactRequest. name profile-image address fcm-token))
+                              "c3" (fn [[name profile-image address fcm-token]]
+                                     (v1.contact/ContactRequestConfirmed. name profile-image address fcm-token))
+                              "c4" (fn [[content content-type message-type clock-value timestamp]]
+                                     (v1.contact/ContactMessage. content content-type message-type clock-value timestamp))}}))
 
 (def writer (transit/writer :json
                             {:handlers

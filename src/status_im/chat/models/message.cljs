@@ -141,7 +141,7 @@
   [{{:keys [chats] :contacts/keys [contacts] :as db} :db :as cofx} chat-id send-record]
   (let [{:keys [dapp? fcm-token]} (get contacts chat-id)]
     (if dapp?
-      (send-dapp-message! cofx chat-id (:content send-record))
+      (send-dapp-message! cofx chat-id send-record)
       (merge (transport/send send-record chat-id cofx)
              (when fcm-token {:send-notification {:message "message"
                                                   :payload {:title "Status" :body "You have a new message"}
@@ -174,7 +174,7 @@
 (defn send-message [{:keys [db now random-id] :as cofx} {:keys [chat-id] :as params}]
   (let [chat            (get-in db [:chats chat-id])
         message         (prepare-plain-message params chat now)
-        send-record     (transport-contact/->ContactMessage (select-keys message transport-keys))
+        send-record     (transport-contact/map->ContactMessage (select-keys message transport-keys))
         message-with-id (assoc message :message-id (transport.utils/message-id send-record))
         fx              (-> (chat-model/upsert-chat cofx {:chat-id chat-id})
                             (update :db add-message-to-db chat-id message-with-id true)
@@ -230,7 +230,7 @@
         request          (:request handler-data)
         hidden-params    (->> (:params command) (filter :hidden) (map :name))
         message          (prepare-command-message current-public-key (get chats chat-id) now request content)
-        send-record      (transport-contact/->ContactMessage (select-keys message transport-keys))
+        send-record      (transport-contact/map->ContactMessage (select-keys message transport-keys))
         message-with-id  (assoc message :message-id (transport.utils/message-id send-record))
         fx               (-> (chat-model/upsert-chat cofx {:chat-id chat-id})
                              (update :db add-message-to-db chat-id message-with-id true)
