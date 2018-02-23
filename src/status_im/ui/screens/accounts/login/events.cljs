@@ -116,11 +116,10 @@
   (fn [{{:accounts/keys [account-creation?] :as db} :db} [_ login-result address]]
     (let [data    (json->clj login-result)
           error   (:error data)
-          success (zero? (count error))
-          db'     (assoc-in db [:accounts/login :processing] false)]
+          success (zero? (count error))]
       (log/debug "Logging result: " login-result)
       (merge
-       {:db (if success db' (assoc-in db' [:accounts/login :error] error))}
+       {:db (if success db (assoc-in db [:accounts/login :error] error))}
        (when success
          (log/debug "Logged in" (when account-creation? " new account") ":" address)
          {::clear-web-data nil
@@ -131,8 +130,7 @@
   (fn [{db :db} [_ error address new-account?]]
     (let [recover-in-progress? (:accounts/recover db)]
       (if (nil? error)
-        {:db         (dissoc db :accounts/login)
-         :dispatch-n [[:stop-debugging]
+        {:dispatch-n [[:stop-debugging]
                       [:initialize-account
                        address
                        new-account?
