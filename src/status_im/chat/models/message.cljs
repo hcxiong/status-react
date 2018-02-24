@@ -56,7 +56,7 @@
                            (chat-model/add-chat cofx chat-identifier))
         chat             (get-in fx [:db :chats chat-identifier])
         command-request? (= content-type constants/content-type-command-request)
-        command          (:command content)
+        request-command  (:request-command content)
         enriched-message (cond-> (assoc message
                                         :chat-id     chat-identifier
                                         :timestamp   (or timestamp now)
@@ -66,13 +66,13 @@
                                                       (:last-clock-value chat)))
                            public-key
                            (assoc :user-statuses {public-key (if current-chat? :seen :received)})
-                           (and command command-request?)
-                           (assoc-in [:content :content-command-ref]
+                           (and request-command command-request?)
+                           (assoc-in [:content :request-command-ref]
                                      (lookup-response-ref access-scope->commands-responses
                                                           current-account
                                                           (get-in fx [:db :chats chat-identifier])
                                                           contacts
-                                                          command)))]
+                                                          request-command)))]
     (cond-> (-> fx
                 (update :db add-message-to-db chat-identifier enriched-message current-chat?)
                 (assoc :save-message (dissoc enriched-message :new?)))
@@ -189,22 +189,21 @@
     :as             request}
    {:keys [params command to-message handler-data content-type]}]
   (let [content (if request
-                  {:command        request-command
-                   :params         (assoc request-params :bot-db (:bot-db params))
-                   :prefill        prefill
-                   :prefill-bot-db prefillBotDb}
-                  {:command (:name command)
-                   :scope   (:scope command)
-                   :params  params})
-        content' (assoc content :handler-data handler-data
-                        :type (name (:type command))
-                        :content-command (:name command)
-                        :content-command-scope-bitmask (:scope-bitmask command)
-                        :content-command-ref (:ref command)
+                  {:request-command     request-command
+                   :request-command-ref (:ref command) ;; TODO janherich this is technically not correct, but works for now
+                   :params              (assoc request-params :bot-db (:bot-db params))
+                   :prefill             prefill
+                   :prefill-bot-db      prefillBotDb}
+                  {:params  params})
+        content' (assoc content
+                        :command (:name command)
+                        :handler-data handler-data
+                        :type (name (:type command)) 
+                        :command-scope-bitmask (:scope-bitmask command)
+                        :command-ref (:ref command)
                         :preview (:preview command)
                         :short-preview (:short-preview command)
-                        :bot (or (:bot command)
-                                 (:owner-id command)))]
+                        :bot (:owner-id command))]
     (add-message-type {:chat-id      chat-id
                        :from         identity
                        :timestamp    now
@@ -278,9 +277,9 @@
     {:call-jail {:jail-id                 identity
                  :path                    [handler-type [name scope-bitmask] :handler]
                  :params                  jail-params
-                 :callback-events-creator (fn [jail-response]
-                                            (when-not (:async-handler command)
-                                              [[:command-handler! chat-id orig-params jail-response]]))}}))
+                 :callback-event-creator (fn [jail-response]
+                                           (when-not (:async-handler command)
+                                             [:command-handler! chat-id orig-params jail-response]))}}))
 
 (defn process-command
   [{:keys [db] :as cofx} {:keys [command message chat-id] :as params}]

@@ -27,8 +27,8 @@
 
 (def move-to-internal-failure-message
   (console-message {:message-id   chat-const/move-to-internal-failure-message-id
-                    :content      {:command "grant-permissions"
-                                   :content (i18n/label :t/move-to-internal-failure-message)}
+                    :content      {:request-command "grant-permissions"
+                                   :content         (i18n/label :t/move-to-internal-failure-message)}
                     :content-type const/content-type-command-request}))
 
 (defn passphrase-messages [mnemonic signing-phrase crazy-math-message?]
@@ -57,8 +57,8 @@
 
 (def intro-message1
   (console-message {:message-id   chat-const/intro-message1-id
-                    :content      {:command "password"
-                                   :content (i18n/label :t/intro-message1)}
+                    :content      {:request-command "password"
+                                   :content         (i18n/label :t/intro-message1)}
                     :content-type const/content-type-command-request}))
 
 (def chat

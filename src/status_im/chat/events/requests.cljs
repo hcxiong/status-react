@@ -36,7 +36,7 @@
   [fx chat-id {:keys [message-id content]}]
   (let [request {:chat-id    chat-id
                  :message-id message-id
-                 :response   (:command content)
+                 :response   (:request-command content)
                  :status     "open"}]
     (-> fx
         (assoc-in [:db :chats chat-id :requests message-id] request)
