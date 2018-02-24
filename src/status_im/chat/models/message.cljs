@@ -75,7 +75,7 @@
                                                           request-command)))]
     (cond-> (-> fx
                 (update :db add-message-to-db chat-identifier enriched-message current-chat?)
-                (assoc :save-message (dissoc enriched-message :new?)))
+                (assoc :save-message enriched-message))
       command-request?
       (requests-events/add-request chat-identifier enriched-message))))
 
