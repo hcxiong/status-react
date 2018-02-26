@@ -238,15 +238,18 @@
    (re-frame/inject-cofx ::get-web3)
    (re-frame/inject-cofx ::get-chat-groups)
    (re-frame/inject-cofx ::get-pending-messages)
-   (re-frame/inject-cofx :get-all-contacts)]
-  (fn [{:keys [db web3 groups all-contacts pending-messages]} [current-account-id ethereum-rpc-url]]
+   (re-frame/inject-cofx :get-all-contacts)
+   (re-frame/inject-cofx :data-store/transport)]
+  (fn [{:data-store/keys [transport] :keys [db web3 groups all-contacts pending-messages]} [current-account-id ethereum-rpc-url]]
     (let [{:keys [public-key]}
           (get-in db [:accounts/accounts current-account-id])]
       (when public-key
         {:transport/init-whisper {:web3 web3 :public-key public-key :groups groups
                                   :pending-messages pending-messages :contacts all-contacts}
-         :db (assoc db :web3 web3
-                    :rpc-url (or ethereum-rpc-url constants/ethereum-rpc-url))}))))
+         :db (assoc db
+                    :web3 web3
+                    :rpc-url (or ethereum-rpc-url constants/ethereum-rpc-url)
+                    :transport/chats transport)}))))
 
 (handlers/register-handler-fx
   :load-processed-messages

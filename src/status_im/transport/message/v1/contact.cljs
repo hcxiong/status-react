@@ -3,7 +3,8 @@
             [status-im.transport.message.core :as message]
             [status-im.transport.message.v1.protocol :as protocol]
             [status-im.transport.utils :as transport.utils]
-            [re-frame.core :as re-frame]))
+            [re-frame.core :as re-frame]
+            [status-im.data-store.transport :as data-store.transport]))
 
 (defrecord NewContactKey [sym-key message]
   message/StatusMessage
@@ -77,7 +78,10 @@
                           :shh/add-filter {:web3 web3
                                            :sym-key-id sym-key-id
                                            :topic (transport.utils/get-topic current-public-key)
-                                           :chat-id chat-id}}
+                                           :chat-id chat-id}
+                          :data-store.transport/save {:chat-id chat-id
+                                                      :chat (-> (get-in db [:transport/chats chat-id])
+                                                                (assoc :sym-key-id sym-key-id))}}
                          (message/send (NewContactKey. sym-key message)
                                        chat-id)))))
 
@@ -90,7 +94,10 @@
                           :shh/add-filter {:web3 web3
                                            :sym-key-id sym-key-id
                                            :topic (transport.utils/get-topic current-public-key)
-                                           :chat-id chat-id}}
+                                           :chat-id chat-id}
+                          :data-store.transport/save {:chat-id chat-id
+                                                      :chat (-> (get-in db [:transport/chats chat-id])
+                                                                (assoc :sym-key-id sym-key-id))}}
                          (message/receive message chat-id chat-id)))))
 
 (handlers/register-handler-fx

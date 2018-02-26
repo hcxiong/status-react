@@ -1,0 +1,12 @@
+(ns status-im.data-store.realm.schemas.account.v22.transport)
+
+(def schema {:name       :transport
+             :primaryKey :chat-id
+             :properties {:chat-id          :string
+                          :ack              :string
+                          :seen             :string
+                          :pending-ack      :string
+                          :pending-send     :string
+                          :topic            :string
+                          :sym-key-id       {:type :string
+                                             :optional true}}})

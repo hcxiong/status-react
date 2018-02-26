@@ -46,7 +46,8 @@
              :inbox/wnodes               constants/default-wnodes
              :inbox/topic                constants/inbox-topic
              :inbox/password             constants/inbox-password
-             :my-profile/editing?        false})
+             :my-profile/editing?        false
+             :transport/chats            {}})
 
 ;;;;GLOBAL
 
