@@ -23,8 +23,8 @@
 (deftype ContactMessageHandler []
   Object
   (tag [this v] "c4")
-  (rep [this {:keys [content content-type message-type clock-value timestamp]}]
-    #js [content content-type message-type clock-value timestamp]))
+  (rep [this {:keys [content content-type message-type to-clock-value timestamp]}]
+    #js [content content-type message-type to-clock-value timestamp]))
 
 (def reader (transit/reader :json
                             {:handlers
@@ -34,8 +34,8 @@
                                      (v1.contact/ContactRequest. name profile-image address fcm-token))
                               "c3" (fn [[name profile-image address fcm-token]]
                                      (v1.contact/ContactRequestConfirmed. name profile-image address fcm-token))
-                              "c4" (fn [[content content-type message-type clock-value timestamp]]
-                                     (v1.contact/ContactMessage. content content-type message-type clock-value timestamp))}}))
+                              "c4" (fn [[content content-type message-type to-clock-value timestamp]]
+                                     (v1.contact/ContactMessage. content content-type message-type to-clock-value timestamp))}}))
 
 (def writer (transit/writer :json
                             {:handlers

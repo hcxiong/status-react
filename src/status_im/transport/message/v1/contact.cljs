@@ -1,9 +1,9 @@
 (ns status-im.transport.message.v1.contact
-  (:require [status-im.utils.handlers :as handlers]
+  (:require [re-frame.core :as re-frame]
+            [status-im.utils.handlers :as handlers]
             [status-im.transport.message.core :as message]
             [status-im.transport.message.v1.protocol :as protocol]
             [status-im.transport.utils :as transport.utils]
-            [re-frame.core :as re-frame]
             [status-im.data-store.transport :as data-store.transport]))
 
 (defrecord NewContactKey [sym-key message]
@@ -57,17 +57,17 @@
                            (message/receive-contact-request-confirmation signature
                                                                          this))))))
 
-(defrecord ContactMessage [content content-type message-type clock-value timestamp]
+(defrecord ContactMessage [content content-type message-type to-clock-value timestamp]
   message/StatusMessage
   (send [this chat-id cofx]
     (protocol/send {:chat-id chat-id
                     :payload this}
                    cofx))
   (receive [this chat-id signature cofx]
-    {:dispatch [:pre-received-message (assoc (into {} this)
-                                             :message-id (transport.utils/message-id this)
-                                             :chat-id    chat-id
-                                             :from       signature)]}))
+    {:dispatch [:chat-received-message/add (assoc (into {} this)
+                                                  :message-id (transport.utils/message-id this)
+                                                  :chat-id    chat-id
+                                                  :from       signature)]}))
 
 (handlers/register-handler-fx
   ::send-new-sym-key
