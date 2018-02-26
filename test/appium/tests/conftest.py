@@ -6,8 +6,7 @@ from datetime import datetime
 from os import environ
 from io import BytesIO
 from sauceclient import SauceClient
-from hashlib import md5
-import hmac
+from tests.github_test_report import GithubHtmlReport
 
 storage = 'http://artifacts.status.im:8081/artifactory/nightlies-local/'
 
@@ -90,49 +89,49 @@ def pytest_configure(config):
 
 
 def pytest_unconfigure(config):
+    github_report = GithubHtmlReport(test_data, sauce_username, sauce_access_key)
+    print(github_report.build_html_report())
     if is_master(config) and config.getoption('pr_number'):
         from github import Github
         repo = Github(github_token).get_user('status-im').get_repo('status-react')
         pull = repo.get_pull(int(config.getoption('pr_number')))
-        with open('github_comment.txt', 'r') as comment:
-            pull.create_issue_comment('# Automated test results: \n' + comment.read())
+        pull.create_issue_comment(github_report.build_html_report())
+        # with open('github_comment.txt', 'r') as comment:
+        #     pull.create_issue_comment('# Automated test results: \n' + comment.read())
 
-
-def get_public_url(job_id):
-    token = hmac.new(bytes(sauce_username + ":" + sauce_access_key, 'latin-1'),
-                     bytes(job_id, 'latin-1'), md5).hexdigest()
-    return "https://saucelabs.com/jobs/%s?auth=%s" % (job_id, token)
 
 
 def make_github_report(error=None):
-    if pytest.config.getoption('pr_number'):
-        title = '### %s' % test_data.test_name
-        outcome = '%s' % ':x:' if error else ':white_check_mark:' + ':\n'
-        title += outcome
-        steps = '\n\n <details>\n<summary>Test Steps & Error message:</summary>\n\n ```%s ```%s\n\n</details>\n' % \
-                (test_data.test_info[test_data.test_name]['steps'], '\n```' + error + '```' if error else '')
-        sessions = str()
-
-        for job_id in test_data.test_info[test_data.test_name]['jobs']:
-            sessions += '  - [Android Device Session](%s) \n' % get_public_url(job_id)
-        with open('github_comment.txt', 'a') as comment:
-            comment.write(title + '\n' + steps + '\n' + sessions + '---\n')
+    pass
+    # if pytest.config.getoption('pr_number'):
+    #     title = '### %s' % test_data.test_name
+    #     outcome = '%s' % ':x:' if error else ':white_check_mark:' + ':\n'
+    #     title += outcome
+    #     steps = '\n\n <details>\n<summary>Test Steps & Error message:</summary>\n\n ```%s ```%s\n\n</details>\n' % \
+    #             (test_data.test_info[test_data.test_name]['steps'], '\n```' + error + '```' if error else '')
+    #     sessions = str()
+    #
+    #     for job_id in test_data.test_info[test_data.test_name]['jobs']:
+    #         sessions += '  - [Android Device Session](%s) \n' % get_public_url(job_id)
+    #     with open('github_comment.txt', 'a') as comment:
+    #         comment.write(title + '\n' + steps + '\n' + sessions + '---\n')
 
 
 @pytest.mark.hookwrapper
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
-    if pytest.config.getoption('env') == 'sauce':
-        if report.when == 'call':
-            if report.passed:
-                for job_id in test_data.test_info[test_data.test_name]['jobs']:
-                    sauce.jobs.update_job(job_id, name=test_data.test_name, passed=True)
-                make_github_report()
-            if report.failed:
-                for job_id in test_data.test_info[test_data.test_name]['jobs']:
-                    sauce.jobs.update_job(job_id, name=test_data.test_name, passed=False)
-                make_github_report(error=report.longreprtext)
+    is_sauce_env = pytest.config.getoption('env') == 'sauce'
+    if report.when == 'call':
+        if report.failed:
+            test_data.test_info[test_data.test_name]['error'] = report.longreprtext
+        if is_sauce_env:
+            update_sauce_jobs(test_data, report.passed)
+
+
+def update_sauce_jobs(test_data, passed):
+    for job_id in test_data.test_info[test_data.test_name]['jobs']:
+        sauce.jobs.update_job(job_id, name=test_data.test_name, passed=passed)
 
 
 def pytest_runtest_setup(item):
