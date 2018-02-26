@@ -34,5 +34,5 @@
 
 (re-frame/reg-fx
   :data-store.transport/save
-  (fn [[chat-id chat]]
+  (fn [{:keys [chat-id chat]}]
     (save chat-id chat)))

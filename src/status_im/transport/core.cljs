@@ -13,7 +13,7 @@
 
 (defn init-whisper!
   [{:keys [identity web3
-           contacts profile-keypair pending-messages]
+           contacts pending-messages transport]
     :as   options}]
   #_{:pre [(spec/valid? ::options options)]}
   (log/debug :init-whisper)
@@ -23,4 +23,11 @@
                        {:privateKeyID identity
                         :topics [(transport.utils/get-topic identity)]}
                        (fn [js-error js-message]
-                         (re-frame/dispatch [:protocol/receive-whisper-message js-error js-message]))))
+                         (re-frame/dispatch [:protocol/receive-whisper-message js-error js-message])))
+  (for [[chat-id {:keys [sym-key-id topic] :as chat}] transport]
+    (when sym-key-id
+      (filters/add-filter! web3
+                           {:SymKeyID sym-key-id
+                            :topics [topic]}
+                           (fn [js-error js-message]
+                             (re-frame/dispatch [:protocol/receive-whisper-message js-error js-message chat-id]))))))
