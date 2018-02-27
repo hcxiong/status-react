@@ -76,6 +76,7 @@
                            :DataDir        "/ethereum/rinkeby_rpc"
                            :UpstreamConfig {:Enabled true
                                             :URL     "https://rinkeby.infura.io/z6GCTmjdP3FETEJmMBI4"}}}})
+
 (def default-networks
   (transform-config
    (merge testnet-networks

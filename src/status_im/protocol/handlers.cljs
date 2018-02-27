@@ -1,36 +1,23 @@
 (ns status-im.protocol.handlers
-  (:require [re-frame.core :as re-frame]
-            [cljs.core.async :as async]
-            [status-im.utils.handlers :as handlers]
-            [status-im.data-store.contacts :as contacts]
-            [status-im.data-store.messages :as messages]
-            [status-im.data-store.pending-messages :as pending-messages]
-            [status-im.data-store.processed-messages :as processed-messages]
-            [status-im.data-store.chats :as chats]
+  (:require [cljs.core.async :as async]
+            [re-frame.core :as re-frame]
             [status-im.constants :as constants]
-            [status-im.i18n :as i18n]
-            [status-im.utils.random :as random]
-            [status-im.utils.async :as async-utils]
-            [status-im.transport.message-cache :as message-cache]
-            [status-im.chat.models :as models.chat]
-            [status-im.transport.inbox :as inbox]
-            [status-im.utils.datetime :as datetime]
-            [taoensso.timbre :as log]
+            [status-im.data-store.processed-messages :as processed-messages]
             [status-im.native-module.core :as status]
-            [clojure.string :as string]
-            [status-im.utils.web3-provider :as web3-provider]
+            [status-im.transport.message-cache :as message-cache]
+            [status-im.utils.async :as async-utils]
+            [status-im.utils.datetime :as datetime]
             [status-im.utils.ethereum.core :as utils]
-            [cljs.reader :as reader]))
+            [status-im.utils.handlers :as handlers]
+            [status-im.utils.web3-provider :as web3-provider]))
 
 ;;;; COFX
-
 (re-frame/reg-cofx
   ::get-web3
   (fn [coeffects _]
     (assoc coeffects :web3 (web3-provider/make-web3))))
 
 ;;;; FX
-
 (def ^:private protocol-realm-queue (async-utils/task-queue 2000))
 
 (re-frame/reg-fx
@@ -67,163 +54,6 @@
       (message-cache/init! messages)
       (processed-messages/delete (str "ttl <=" now)))))
 
-(re-frame/reg-fx
-  ::add-peer
-  (fn [{:keys [wnode web3]}]
-    (inbox/add-peer wnode
-                    #(re-frame/dispatch [::add-peer-success web3 %])
-                    #(re-frame/dispatch [::add-peer-error %]))))
-
-(re-frame/reg-fx
-  ::fetch-peers
-  (fn [{:keys [wnode web3 retries]}]
-    ;; Run immediately on first run, add delay before retry
-    (let [delay (cond
-                  (zero? retries) 0
-                  (< retries 3)   300
-                  (< retries 10)  1000
-                  :else           5000)]
-      (if (> retries 100)
-        (log/error "Number of retries for fetching peers exceed" wnode)
-        (js/setTimeout
-          (fn [] (inbox/fetch-peers #(re-frame/dispatch [::fetch-peers-success web3 % retries])
-                                    #(re-frame/dispatch [::fetch-peers-error %])))
-          delay)))))
-
-(re-frame/reg-fx
-  ::mark-trusted-peer
-  (fn [{:keys [wnode web3 peers]}]
-    (inbox/mark-trusted-peer web3
-                             wnode
-                             peers
-                             #(re-frame/dispatch [::mark-trusted-peer-success web3 %])
-                             #(re-frame/dispatch [::mark-trusted-peer-error %]))))
-
-(re-frame/reg-fx
-  ::request-messages
-  (fn [{:keys [wnode topic sym-key-id web3]}]
-    (inbox/request-messages web3
-                            wnode
-                            topic
-                            sym-key-id
-                            #(re-frame/dispatch [::request-messages-success %])
-                            #(re-frame/dispatch [::request-messages-error %]))))
-
-
-;;;; Handlers
-
-;; NOTE(dmitryn): events chain
-;; add-peer -> fetch-peers -> mark-trusted-peer -> get-sym-key -> request-messages
-(handlers/register-handler-fx
-  :initialize-offline-inbox
-  (fn [{:keys [db]} [_ web3]]
-    (log/info "offline inbox: initialize")
-    (let [wnode-id (get db :inbox/wnode)
-          wnode    (get-in db [:inbox/wnodes wnode-id :address])]
-      {::add-peer {:wnode wnode
-                   :web3  web3}})))
-
-(handlers/register-handler-fx
-  ::add-peer-success
-  (fn [{:keys [db]} [_ web3 response]]
-    (let [wnode-id (get db :inbox/wnode)
-          wnode    (get-in db [:inbox/wnodes wnode-id :address])]
-      (log/info "offline inbox: add-peer response" wnode response)
-      {::fetch-peers {:wnode wnode
-                      :web3  web3
-                      :retries 0}})))
-
-(handlers/register-handler-fx
-  ::fetch-peers-success
-  (fn [{:keys [db]} [_ web3 peers retries]]
-    (let [wnode-id (get db :inbox/wnode)
-          wnode    (get-in db [:inbox/wnodes wnode-id :address])]
-      (log/info "offline inbox: fetch-peers response" peers)
-      (if (inbox/registered-peer? peers wnode)
-        {::mark-trusted-peer {:wnode wnode
-                              :web3  web3
-                              :peers peers}}
-        (do
-          (log/info "Peer" wnode "is not registered. Retrying fetch peers.")
-          {::fetch-peers {:wnode   wnode
-                          :web3    web3
-                          :retries (inc retries)}})))))
-
-(handlers/register-handler-fx
-  ::mark-trusted-peer-success
-  (fn [{:keys [db]} [_ web3 response]]
-    (let [wnode-id (get db :inbox/wnode)
-          wnode    (get-in db [:inbox/wnodes wnode-id :address])
-          password (:inbox/password db)]
-      (log/info "offline inbox: mark-trusted-peer response" wnode response)
-      {::get-sym-key {:password password
-                      :web3     web3}})))
-
-
-
-(handlers/register-handler-fx
-  ::get-sym-key-success
-  (fn [{:keys [db]} [_ web3 sym-key-id]]
-    (log/info "offline inbox: get-sym-key response" sym-key-id)
-    (let [wnode-id (get db :inbox/wnode)
-          wnode    (get-in db [:inbox/wnodes wnode-id :address])
-          topic    (:inbox/topic db)]
-      {::request-messages {:wnode      wnode
-                           :topic      topic
-                           :sym-key-id sym-key-id
-                           :web3       web3}})))
-
-(handlers/register-handler-fx
-  ::request-messages-success
-  (fn [_ [_ response]]
-    (log/info "offline inbox: request-messages response" response)))
-
-(handlers/register-handler-fx
-  ::add-peer-error
-  (fn [_ [_ error]]
-    (log/error "offline inbox: add-peer error" error)))
-
-(handlers/register-handler-fx
-  ::fetch-peers-error
-  (fn [_ [_ error]]
-    (log/error "offline inbox: fetch-peers error" error)))
-
-(handlers/register-handler-fx
-  ::mark-trusted-peer-error
-  (fn [_ [_ error]]
-    (log/error "offline inbox: mark-trusted-peer error" error)))
-
-(handlers/register-handler-fx
-  ::get-sym-key-error
-  (fn [_ [_ error]]
-    (log/error "offline inbox: get-sym-key error" error)))
-
-(handlers/register-handler-fx
-  ::request-messages-error
-  (fn [_ [_ error]]
-    (log/error "offline inbox: request-messages error" error)))
-
-(handlers/register-handler-fx
-  :handle-whisper-message
-  (fn [_ [_ error msg options]]
-    {::handle-whisper-message {:error error
-                               :msg msg
-                               :options options}}))
-
-;;TODO (yenda) remove once go implements persistence
-(handlers/register-handler-fx
-  :sym-key-added
-  (fn [{:keys [db]} [_ {:keys [chat-id sym-key sym-key-id]}]]
-    (let [web3 (:web3 db)
-          {:keys [topic] :as chat} (get-in db [:transport/chats chat-id])]
-      {:db (assoc-in db [:transport/chats chat-id :sym-key-id] sym-key-id)
-       :data-store.transport/save {:chat-id chat-id
-                                   :chat (assoc chat :sym-key-id sym-key-id)}
-       :shh/add-filter {:web3 web3
-                        :sym-key-id sym-key-id
-                        :topic topic
-                        :chat-id chat-id}})))
-
 ;;; INITIALIZE PROTOCOL
 (handlers/register-handler-fx
   :initialize-protocol
@@ -236,7 +66,7 @@
         {;;TODO (yenda) remove once go implements persistence
          :shh/add-sym-keys {:web3 web3
                             :transport transport
-                            :success-event :sym-key-added}
+                            :success-event ::sym-key-added}
          :transport/init-whisper {:web3       web3
                                   :public-key public-key
                                   :transport  transport}
@@ -244,6 +74,20 @@
                     :web3 web3
                     :rpc-url (or ethereum-rpc-url constants/ethereum-rpc-url)
                     :transport/chats transport)}))))
+
+;;TODO (yenda) remove once go implements persistence
+(handlers/register-handler-fx
+  ::sym-key-added
+  (fn [{:keys [db]} [_ {:keys [chat-id sym-key sym-key-id]}]]
+    (let [web3 (:web3 db)
+          {:keys [topic] :as chat} (get-in db [:transport/chats chat-id])]
+      {:db (assoc-in db [:transport/chats chat-id :sym-key-id] sym-key-id)
+       :data-store.transport/save {:chat-id chat-id
+                                   :chat (assoc chat :sym-key-id sym-key-id)}
+       :shh/add-filter {:web3 web3
+                        :sym-key-id sym-key-id
+                        :topic topic
+                        :chat-id chat-id}})))
 
 (handlers/register-handler-fx
   :load-processed-messages

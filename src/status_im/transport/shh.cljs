@@ -50,11 +50,11 @@
 
 (re-frame/reg-fx
   :shh/generate-sym-key-from-password
-  (fn [{:keys [web3 password success-event error-event]}]
+  (fn [{:keys [web3 password on-success on-error]}]
     (generate-sym-key-from-password {:web3       web3
                                      :password   password
-                                     :on-success #(re-frame/dispatch [success-event %])
-                                     :on-error   #(re-frame/dispatch [error-event %])})))
+                                     :on-success on-success
+                                     :on-error   on-error})))
 
 (defn post-message
   [{:keys [web3 whisper-message on-success on-error]}]
