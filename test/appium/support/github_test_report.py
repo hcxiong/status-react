@@ -154,7 +154,7 @@ class GithubHtmlReport:
             row += "<p>"
             row += "<blockquote>"
             # last 3 steps as summary
-            row += "%s" % ''.join(test_steps_html[-3:])
+            row += "%s" % ''.join(test_steps_html[-2:])
             row += "</blockquote>"
             row += "</p>"
             row += "<p>"
