@@ -90,8 +90,6 @@ class GithubHtmlReport:
         tests += "</colgroup>"
         tests += "<tbody>"
         tests += "<tr>"
-        tests += "<th>Test</th>"
-        tests += "<th>Logs</th>"
         tests += "</tr>"
         for test in passed_tests:
             tests += self.build_passed_test_html_table_row(test)
@@ -105,10 +103,8 @@ class GithubHtmlReport:
         for step in passed_test.steps:
             test_steps_html += "<div>%s</div>" % step
 
-        row = "<tr>"
-        row += "<td>%s</td>" % passed_test.name
-        row += "<td>"
-        row += "<p>"
+        row = "<tr><td>%s</td></tr>" % passed_test.name
+        row += "<tr><td><p>"
         row += "<details><summary>Click to expand full logs</summary>"
         row += "<br/>"
         if test_steps_html:
@@ -121,8 +117,7 @@ class GithubHtmlReport:
             row += self.build_device_sessions_html(passed_test.jobs)
 
         row += "</details>"
-        row += "</p>"
-        row += "</td></tr>"
+        row += "</p></td></tr>"
         return row
 
     def build_failed_tests_html_table(self, failed_tests):
@@ -134,8 +129,6 @@ class GithubHtmlReport:
         tests += "</colgroup>"
         tests += "<tbody>"
         tests += "<tr>"
-        tests += "<th>Test</th>"
-        tests += "<th>Failure</th>"
         tests += "</tr>"
         for test in failed_tests:
             tests += self.build_failed_test_html_table_row(test)
@@ -147,9 +140,8 @@ class GithubHtmlReport:
         test_steps_html = list()
         for step in failed_test.steps:
             test_steps_html.append("<div>%s</div>" % step)
-        row = "<tr>"
-        row += "<td>%s</td>" % failed_test.name
-        row += "<td>"
+        row = "<tr><td>%s</td></tr>" % failed_test.name
+        row += "<tr><td>"
         if test_steps_html:
             row += "<p>"
             row += "<blockquote>"
