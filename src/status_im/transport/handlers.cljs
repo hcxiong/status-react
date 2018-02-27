@@ -9,7 +9,7 @@
             [status-im.transport.utils :as transport.utils]
             [cljs.reader :as reader]
             [status-im.transport.message.transit :as transit]
-            status-im.transport.shh))
+            [status-im.transport.shh :as shh]))
 
 (re-frame/reg-fx
   :stop-whisper
@@ -18,11 +18,10 @@
 
 (re-frame/reg-fx
   :transport/init-whisper
-  (fn [{:keys [web3 public-key groups status contacts pending-messages]}]
-    (transport/init-whisper!
-     {:web3                        web3
-      :identity                    public-key
-      :pending-messages            pending-messages})))
+  (fn [{:keys [web3 public-key transport]}]
+    (transport/init-whisper! {:web3      web3
+                              :identity  public-key
+                              :transport transport})))
 
 (handlers/register-handler-fx
   :protocol/receive-whisper-message

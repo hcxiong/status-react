@@ -12,10 +12,7 @@
   #_(reset-keys!))
 
 (defn init-whisper!
-  [{:keys [identity web3
-           contacts pending-messages transport]
-    :as   options}]
-  #_{:pre [(spec/valid? ::options options)]}
+  [{:keys [identity web3 transport]}]
   (log/debug :init-whisper)
   (stop-whisper!)
 
@@ -24,10 +21,12 @@
                         :topics [(transport.utils/get-topic identity)]}
                        (fn [js-error js-message]
                          (re-frame/dispatch [:protocol/receive-whisper-message js-error js-message])))
-  (for [[chat-id {:keys [sym-key-id topic] :as chat}] transport]
-    (when sym-key-id
-      (filters/add-filter! web3
-                           {:SymKeyID sym-key-id
-                            :topics [topic]}
-                           (fn [js-error js-message]
-                             (re-frame/dispatch [:protocol/receive-whisper-message js-error js-message chat-id]))))))
+
+  ;;TODO (yenda) uncomment and rework once go implements persistence
+  #_(doseq [[chat-id {:keys [sym-key-id topic] :as chat}] transport]
+      (when sym-key-id
+        (filters/add-filter! web3
+                             {:symKeyID sym-key-id
+                              :topics [topic]}
+                             (fn [js-error js-message]
+                               (re-frame/dispatch [:protocol/receive-whisper-message js-error js-message chat-id]))))))

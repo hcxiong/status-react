@@ -9,4 +9,7 @@
                           :pending-send     :string
                           :topic            :string
                           :sym-key-id       {:type :string
+                                             :optional true}
+                          ;;TODO (yenda) remove once go implements persistence
+                          :sym-key          {:type :string
                                              :optional true}}})

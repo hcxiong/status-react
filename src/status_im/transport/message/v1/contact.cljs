@@ -81,13 +81,15 @@
                                            :chat-id chat-id}
                           :data-store.transport/save {:chat-id chat-id
                                                       :chat (-> (get-in db [:transport/chats chat-id])
-                                                                (assoc :sym-key-id sym-key-id))}}
+                                                                (assoc :sym-key-id sym-key-id)
+                                                                ;;TODO (yenda) remove once go implements persistence
+                                                                (assoc :sym-key sym-key))}}
                          (message/send (NewContactKey. sym-key message)
                                        chat-id)))))
 
 (handlers/register-handler-fx
   ::add-new-sym-key
-  (fn [{:keys [db] :as cofx} [_ {:keys [sym-key-id chat-id message]}]]
+  (fn [{:keys [db] :as cofx} [_ {:keys [sym-key-id sym-key chat-id message]}]]
     (let [{:keys [web3 current-public-key]} db]
       (handlers/merge-fx cofx
                          {:db (assoc-in db [:transport/chats chat-id :sym-key-id] sym-key-id)
@@ -97,7 +99,9 @@
                                            :chat-id chat-id}
                           :data-store.transport/save {:chat-id chat-id
                                                       :chat (-> (get-in db [:transport/chats chat-id])
-                                                                (assoc :sym-key-id sym-key-id))}}
+                                                                (assoc :sym-key-id sym-key-id)
+                                                                ;;TODO (yenda) remove once go implements persistence
+                                                                (assoc :sym-key sym-key))}}
                          (message/receive message chat-id chat-id)))))
 
 (handlers/register-handler-fx

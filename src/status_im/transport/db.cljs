@@ -11,9 +11,11 @@
 
 ;; optional
 (spec/def ::sym-key-id string?)
+;;TODO (yenda) remove once go implements persistence
+(spec/def ::sym-key string?)
 
 (spec/def :transport/chat (allowed-keys :req-un [::ack ::seen ::pending-ack ::pending-send ::topic]
-                                        :opt-un [::sym-key-id]))
+                                        :opt-un [::sym-key-id ::sym-key]))
 
 (spec/def :transport/chats (spec/map-of :global/not-empty-string :transport/chat))
 

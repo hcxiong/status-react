@@ -29,16 +29,6 @@
   (fn [coeffects _]
     (assoc coeffects :web3 (web3-provider/make-web3))))
 
-(re-frame/reg-cofx
-  ::get-chat-groups
-  (fn [coeffects _]
-    (assoc coeffects :groups (chats/get-active-group-chats))))
-
-(re-frame/reg-cofx
-  ::get-pending-messages
-  (fn [coeffects _]
-    (assoc coeffects :pending-messages (pending-messages/get-all))))
-
 ;;;; FX
 
 (def ^:private protocol-realm-queue (async-utils/task-queue 2000))
@@ -63,17 +53,6 @@
    :timestamp    timestamp
    :content      content
    :content-type constants/text-content-type})
-
-
-(re-frame/reg-fx
-  ::chats-add-contact
-  (fn [[group-id identity]]
-    (chats/add-contacts group-id [identity])))
-
-(re-frame/reg-fx
-  ::chats-remove-contact
-  (fn [[group-id identity]]
-    (chats/remove-contacts group-id [identity])))
 
 (re-frame/reg-fx
   ::status-init-jail
@@ -231,22 +210,36 @@
                                :msg msg
                                :options options}}))
 
+;;TODO (yenda) remove once go implements persistence
+(handlers/register-handler-fx
+  :sym-key-added
+  (fn [{:keys [db]} [_ {:keys [chat-id sym-key sym-key-id]}]]
+    (let [web3 (:web3 db)
+          {:keys [topic] :as chat} (get-in db [:transport/chats chat-id])]
+      {:db (assoc-in db [:transport/chats chat-id :sym-key-id] sym-key-id)
+       :data-store.transport/save {:chat-id chat-id
+                                   :chat (assoc chat :sym-key-id sym-key-id)}
+       :shh/add-filter {:web3 web3
+                        :sym-key-id sym-key-id
+                        :topic topic
+                        :chat-id chat-id}})))
+
 ;;; INITIALIZE PROTOCOL
 (handlers/register-handler-fx
   :initialize-protocol
   [re-frame/trim-v
    (re-frame/inject-cofx ::get-web3)
-   (re-frame/inject-cofx ::get-chat-groups)
-   (re-frame/inject-cofx ::get-pending-messages)
-   (re-frame/inject-cofx :get-all-contacts)
    (re-frame/inject-cofx :data-store/transport)]
-  (fn [{:data-store/keys [transport] :keys [db web3 groups all-contacts pending-messages]} [current-account-id ethereum-rpc-url]]
-    (let [{:keys [public-key]}
-          (get-in db [:accounts/accounts current-account-id])]
+  (fn [{:data-store/keys [transport] :keys [db web3]} [current-account-id ethereum-rpc-url]]
+    (let [{:keys [public-key]} (get-in db [:accounts/accounts current-account-id])]
       (when public-key
-        {:transport/init-whisper {:web3 web3 :public-key public-key :groups groups
-                                  :pending-messages pending-messages :contacts all-contacts
-                                  :transport transport}
+        {;;TODO (yenda) remove once go implements persistence
+         :shh/add-sym-keys {:web3 web3
+                            :transport transport
+                            :success-event :sym-key-added}
+         :transport/init-whisper {:web3       web3
+                                  :public-key public-key
+                                  :transport  transport}
          :db (assoc db
                     :web3 web3
                     :rpc-url (or ethereum-rpc-url constants/ethereum-rpc-url)

@@ -105,6 +105,20 @@
 (defn log-error [error]
   (log/error :shh/get-new-sym-key-error error))
 
+
+;;TODO (yenda) remove once go implements persistence
+(re-frame/reg-fx
+  :shh/add-sym-keys
+  (fn [{:keys [web3 transport success-event]}]
+    (doseq [[chat-id {:keys [sym-key]}] transport]
+      (add-sym-key {:web3 web3
+                    :sym-key sym-key
+                    :on-success (fn [sym-key-id]
+                                  (re-frame/dispatch [success-event {:chat-id chat-id
+                                                                     :sym-key sym-key
+                                                                     :sym-key-id sym-key-id}]))
+                    :on-error log-error}))))
+
 (re-frame/reg-fx
   :shh/add-new-sym-key
   (fn [{:keys [web3 sym-key chat-id message success-event]}]
@@ -113,6 +127,8 @@
                   :on-success (fn [sym-key-id]
                                 (re-frame/dispatch [success-event {:chat-id chat-id
                                                                    :message message
+                                                                   ;;TODO (yenda) remove once go implements persistence
+                                                                   :sym-key sym-key
                                                                    :sym-key-id sym-key-id}]))
                   :on-error log-error})))
 
