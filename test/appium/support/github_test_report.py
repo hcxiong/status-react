@@ -184,6 +184,6 @@ class GithubHtmlReport:
         html = "<ins>Device sessions:</ins>"
         html += "<p><ul>"
         for i, job_id in enumerate(jobs):
-            html += "<li><a href=\"%s\">Device %d</a></li>" % (self.get_sauce_job_url(job_id), i)
+            html += "<li><a href=\"%s\">Device %d</a></li>" % (self.get_sauce_job_url(job_id), i+1)
         html += "</ul></p>"
         return html
