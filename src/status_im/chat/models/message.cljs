@@ -62,8 +62,8 @@
                                         :chat-id          chat-identifier
                                         :timestamp        (or timestamp now)
                                         :show?            true
-                                        :from-clock-value (or to-clock-value ((fnil inc 0) (:last-from-clock-value chat)))
-                                        :to-clock-value   (or (:last-to-clock-value chat) 0))
+                                        :from-clock-value (or to-clock-value (inc (:last-from-clock-value chat)))
+                                        :to-clock-value   (:last-to-clock-value chat))
                            public-key
                            (assoc :user-statuses {public-key (if current-chat? :seen :received)})
                            (and request-command command-request?)
@@ -166,8 +166,8 @@
                      :content-type     constants/text-content-type
                      :outgoing         true
                      :timestamp        now
-                     :to-clock-value   (inc (or last-to-clock-value 0))
-                     :from-clock-value (or last-from-clock-value 0)
+                     :to-clock-value   (inc last-to-clock-value)
+                     :from-clock-value last-from-clock-value
                      :show?            true}
                     chat))
 
@@ -218,8 +218,8 @@
                        :to-message       to-message
                        :type             (:type command)
                        :has-handler      (:has-handler command)
-                       :to-clock-value   (inc (or last-to-clock-value 0))
-                       :from-clock-value (or last-from-clock-value 0)
+                       :to-clock-value   (inc last-to-clock-value)
+                       :from-clock-value last-from-clock-value
                        :show?            true}
                       chat)))
 

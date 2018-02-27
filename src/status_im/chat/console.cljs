@@ -62,17 +62,19 @@
                     :content-type const/content-type-command-request}))
 
 (def chat
-  {:chat-id      const/console-chat-id
-   :name         (string/capitalize const/console-chat-id)
-   :color        default-chat-color
-   :group-chat   false
-   :is-active    true
-   :unremovable? true
-   :timestamp    (.getTime (js/Date.))
-   :photo-path   const/console-chat-id
-   :contacts     [{:identity         const/console-chat-id
-                   :text-color       "#FFFFFF"
-                   :background-color "#AB7967"}]})
+  {:chat-id               const/console-chat-id
+   :name                  (string/capitalize const/console-chat-id)
+   :color                 default-chat-color
+   :group-chat            false
+   :is-active             true
+   :unremovable?          true
+   :timestamp             (.getTime (js/Date.))
+   :photo-path            const/console-chat-id
+   :contacts              [{:identity         const/console-chat-id
+                            :text-color       "#FFFFFF"
+                            :background-color "#AB7967"}]
+   :last-from-clock-value 0
+   :last-to-clock-value   0})
 
 (def contact
   {:whisper-identity const/console-chat-id
