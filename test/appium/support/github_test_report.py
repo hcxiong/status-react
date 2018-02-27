@@ -183,7 +183,7 @@ class GithubHtmlReport:
     def build_device_sessions_html(self, jobs):
         html = "<ins>Device sessions:</ins>"
         html += "<p><ul>"
-        for job_id in jobs:
-            html += "<li><a href=\"%s\"></a></li>" % self.get_sauce_job_url(job_id)
-        html += "</p></ul>"
+        for i, job_id in enumerate(jobs):
+            html += "<li><a href=\"%s\">Device %d</a></li>" % (self.get_sauce_job_url(job_id), i)
+        html += "</ul></p>"
         return html
