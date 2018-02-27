@@ -17,8 +17,7 @@
             [status-im.utils.platform :as platform]
             [status-im.ui.screens.profile.components.views :as profile.components]
             [status-im.ui.screens.profile.components.styles :as profile.components.styles]
-            [status-im.ui.components.action-button.styles :as action-button.styles]
-            [status-im.protocol.core :as protocol]))
+            [status-im.ui.components.action-button.styles :as action-button.styles]))
 
 (defn my-profile-toolbar []
   [toolbar/toolbar {}
@@ -100,7 +99,7 @@
 
 (defn navigate-to-accounts []
   ;; TODO(rasom): probably not the best place for this call
-  (protocol/stop-whisper!)
+  #_(protocol/stop-whisper!)
   (re-frame/dispatch [:navigate-to :accounts]))
 
 (defn handle-logout []
