@@ -20,11 +20,12 @@
 (defn ack [message-id chat-id {:keys [db] :as cofx}]
   {:db (update-in db [:transport/chats chat-id :ack] conj message-id)})
 
-(defn send [{:keys [payload chat-id]} {:keys [db] :as cofx}]
+(defn send [{:keys [payload chat-id success-event]} {:keys [db] :as cofx}]
   ;; we assume that the chat contains the contact public-key
   (let [{:keys [current-public-key web3]} db
         {:keys [sym-key-id topic]} (get-in db [:transport/chats chat-id])]
     {:shh/post {:web3    web3
+                :success-event success-event
                 :message {:sig current-public-key
                           :symKeyID sym-key-id
                           :ttl ttl
@@ -33,10 +34,11 @@
                           :payload  payload
                           :topic topic}}}))
 
-(defn send-with-pubkey [{:keys [payload chat-id]} {:keys [db] :as cofx}]
+(defn send-with-pubkey [{:keys [payload chat-id success-event]} {:keys [db] :as cofx}]
   (let [{:keys [current-public-key web3]} db
         {:keys [topic]} (get-in db [:transport/chats chat-id])]
     {:shh/post {:web3    web3
+                :success-event success-event
                 :message {:sig current-public-key
                           :pubKey chat-id
                           :ttl ttl

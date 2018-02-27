@@ -67,12 +67,14 @@
 
 (re-frame/reg-fx
   :shh/post
-  (fn [{:keys [web3 message error-event]
+  (fn [{:keys [web3 message success-event error-event]
         :or {error-event   :protocol/send-status-message-error}}]
     (post-message {:web3       web3
                    :whisper-message (update message :payload (comp transport.utils/from-utf8
                                                                    transit/serialize))
-                   :on-success #(log/debug :send-status-message-success)
+                   :on-success (if succes-event
+                                 #(re-frame/dispatch success-event)
+                                 #(log/debug :ssh/post-success))
                    :on-error   #(re-frame/dispatch [error-event %])})))
 
 (defn add-sym-key
