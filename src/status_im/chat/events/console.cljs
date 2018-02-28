@@ -1,7 +1,5 @@
 (ns status-im.chat.events.console
-  (:require [re-frame.core :as re-frame]
-            [status-im.utils.handlers :as handlers]
-            [status-im.constants :as const]
+  (:require [status-im.constants :as const]
             [status-im.i18n :as i18n]
             [status-im.chat.console :as console-chat]
             [status-im.ui.screens.accounts.events :as accounts-events]
@@ -43,11 +41,7 @@
                                   :content-type const/text-content-type})])
 
 (def console-commands->fx
-  {"password"
-   (fn [{:keys [db]} {:keys [params]}]
-     (accounts-events/create-account db (:password params)))
-
-   "faucet"
+  {"faucet"
    (fn [{:keys [db random-id]} {:keys [params id]}]
      (let [{:accounts/keys [accounts current-account-id]} db
            current-address (get-in accounts [current-account-id :address])
@@ -81,4 +75,4 @@
 (def commands-names (set (keys console-commands->fx)))
 
 (def commands-with-delivery-status
-  (disj commands-names "password" "faucet" "debug"))
+  (disj commands-names "faucet" "debug"))

@@ -9,7 +9,8 @@
             [status-im.commands.utils :as commands-utils]
             [status-im.utils.datetime :as time]
             [status-im.utils.platform :as platform]
-            [status-im.i18n :as i18n]))
+            [status-im.i18n :as i18n]
+            [status-im.constants :as const]))
 
 (reg-sub :get-chats :chats)
 
@@ -55,7 +56,10 @@
   :get-active-chats
   :<- [:get-chats]
   (fn [chats]
-    (into {} (filter (comp :is-active second)) chats)))
+    (into {} (filter #(let [chat (second %)]
+                        ;;TODO console should be shown in dev mode
+                        (and (:is-active chat) (not= const/console-chat-id (:chat-id chat))))
+                     chats))))
 
 (reg-sub
   :get-chat
