@@ -29,7 +29,7 @@
   (views/letsubs [{:keys [to to-name whisper-identity]} [:wallet.send/transaction]
                   {:keys [amount amount-error]}         [:wallet.request/transaction]
                   scroll (atom nil)]
-    [comp/simple-screen {:avoid-keyboard? true}
+    [comp/simple-screen {}
      [comp/toolbar (i18n/label :t/new-request)]
      [react/view components.styles/flex
       [common/network-info {:text-color :white}]
