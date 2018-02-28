@@ -36,7 +36,8 @@ class GithubHtmlReport:
             title_html = "<h2>%.0f%% of end-end tests have passed</h2>" % (len(passed_tests) / len(tests) * 100)
             summary_html = "<pre>"
             summary_html += "Total executed tests: %d<br/>" % len(tests)
-            summary_html += "Failed tests: %d" % len(failed_tests)
+            summary_html += "Failed tests: %d<br/>" % len(failed_tests)
+            summary_html += "Passed tests: %d" % len(passed_tests)
             summary_html += "</pre>"
             failed_tests_html = str()
             passed_tests_html = str()
