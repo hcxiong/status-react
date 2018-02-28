@@ -1,7 +1,9 @@
 (ns status-im.data-store.transport
-  (:require [re-frame.core :as re-frame]
+  (:require [cljs.tools.reader.edn :as edn]
+            [cljs.core.async :as async]
+            [re-frame.core :as re-frame]
             [status-im.data-store.realm.transport :as data-store]
-            [cljs.tools.reader.edn :as edn]))
+            [status-im.data-store.realm.core :as core]))
 
 
 (defn deserialize-chat [serialized-chat]
@@ -12,16 +14,15 @@
       (update :pending-ack edn/read-string)
       (update :pending-send edn/read-string)))
 
-(defn get-all []
-  (reduce (fn [acc {:keys [chat-id] :as chat}]
-            (assoc acc chat-id (deserialize-chat chat)))
-          {}
-          (data-store/get-all)))
-
 (re-frame/reg-cofx
   :data-store/transport
   (fn [cofx _]
-    (assoc cofx :data-store/transport (get-all))))
+    (assoc cofx
+           :data-store/transport
+           (reduce (fn [acc {:keys [chat-id] :as chat}]
+                     (assoc acc chat-id (deserialize-chat chat)))
+                   {}
+                   (data-store/get-all)))))
 
 (defn save [chat-id chat]
   (let [serialized-chat (-> chat
@@ -35,4 +36,4 @@
 (re-frame/reg-fx
   :data-store.transport/save
   (fn [{:keys [chat-id chat]}]
-    (save chat-id chat)))
+    (async/go (async/>! core/realm-queue #(save chat-id chat)))))
