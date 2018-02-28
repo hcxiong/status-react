@@ -42,9 +42,9 @@ class GithubHtmlReport:
             failed_tests_html = str()
             passed_tests_html = str()
             if failed_tests:
-                failed_tests_html = self.build_failed_tests_html_table(failed_tests)
+                failed_tests_html = self.build_tests_table_html(failed_tests, failed_tests=True)
             if passed_tests:
-                passed_tests_html = self.build_passed_tests_html_table(passed_tests)
+                passed_tests_html = self.build_tests_table_html(passed_tests, failed_tests=False)
             return title_html + summary_html + failed_tests_html + passed_tests_html
         else:
             return None
@@ -79,94 +79,61 @@ class GithubHtmlReport:
                 passed.append(test)
         return passed
 
-    def build_passed_tests_html_table(self, passed_tests):
-        tests = "<h3>Passed tests (%d)</h3>" % len(passed_tests)
-        tests += "<details>"
-        tests += "<summary>Click to expand</summary>"
-        tests += "<br/>"
-        tests += "<table style=\"width: 100%\">"
-        tests += "<colgroup>"
-        tests += "<col span=\"1\" style=\"width: 20%;\">"
-        tests += "<col span=\"1\" style=\"width: 80%;\">"
-        tests += "</colgroup>"
-        tests += "<tbody>"
-        tests += "<tr>"
-        tests += "</tr>"
-        for test in passed_tests:
-            tests += self.build_passed_test_html_table_row(test)
-        tests += "</tbody>"
-        tests += "</table>"
-        tests += "</details>"
-        return tests
+    def build_tests_table_html(self, tests, failed_tests=False):
+        tests_type = "Failed tests" if failed_tests else "Passed tests"
+        html = "<h3>%s (%d)</h3>" % (tests_type, len(tests))
+        html += "<details>"
+        html += "<summary>Click to expand</summary>"
+        html += "<br/>"
+        html += "<table style=\"width: 100%\">"
+        html += "<colgroup>"
+        html += "<col span=\"1\" style=\"width: 20%;\">"
+        html += "<col span=\"1\" style=\"width: 80%;\">"
+        html += "</colgroup>"
+        html += "<tbody>"
+        html += "<tr>"
+        html += "</tr>"
+        for test in tests:
+            html += self.build_test_row_html(test)
+        html += "</tbody>"
+        html += "</table>"
+        html += "</details>"
+        return html
 
-    def build_passed_test_html_table_row(self, passed_test):
-        test_steps_html = str()
-        for step in passed_test.steps:
-            test_steps_html += "<div>%s</div>" % step
-
-        row = "<tr><td><b>%s</b></td></tr>" % passed_test.name
-        row += "<tr><td><p>"
-        row += "<details><summary>Click to expand full logs</summary>"
-        row += "<br/>"
-        if test_steps_html:
-            row += "<p><ins>Test steps:</ins></p>"
-            row += "<blockquote>"
-            row += "%s" % test_steps_html
-            row += "</blockquote>"
-        if passed_test.jobs:
-            row += self.build_device_sessions_html(passed_test.jobs)
-
-        row += "</details>"
-        row += "</p></td></tr>"
-        return row
-
-    def build_failed_tests_html_table(self, failed_tests):
-        tests = "<h3>Failed tests (%d)</h3>" % len(failed_tests)
-        tests += "<table style=\"width: 100%\">"
-        tests += "<colgroup>"
-        tests += "<col span=\"1\" style=\"width: 20%;\">"
-        tests += "<col span=\"1\" style=\"width: 80%;\">"
-        tests += "</colgroup>"
-        tests += "<tbody>"
-        tests += "<tr>"
-        tests += "</tr>"
-        for test in failed_tests:
-            tests += self.build_failed_test_html_table_row(test)
-        tests += "</tbody>"
-        tests += "</table>"
-        return tests
-
-    def build_failed_test_html_table_row(self, failed_test):
+    def build_test_row_html(self, test):
+        html = "<tr><td><b>%s</b></td></tr>" % test.name
+        html += "<tr><td>"
         test_steps_html = list()
-        for step in failed_test.steps:
+        for step in test.steps:
             test_steps_html.append("<div>%s</div>" % step)
-        row = "<tr><td><b>%s</b></td></tr>" % failed_test.name
-        row += "<tr><td>"
-        if test_steps_html:
-            row += "<p>"
-            row += "<blockquote>"
-            # last 3 steps as summary
-            row += "%s" % ''.join(test_steps_html[-2:])
-            row += "</blockquote>"
-            row += "</p>"
-            row += "<p>"
-            row += "<details><summary>Click to expand full logs</summary>"
-            row += "<br/>"
-            row += "<p><ins>Test steps:</ins></p>"
-            row += "<blockquote>"
-            row += "%s" % ''.join(test_steps_html)
-            row += "</blockquote>"
-        if failed_test.error:
-            row += "<p><ins>Erorr:</ins></p>"
-            row += "<code>%s</code>" % failed_test.error
-            row += "<br/><br/>"
-        if failed_test.jobs:
-            row += self.build_device_sessions_html(failed_test.jobs)
-        if test_steps_html:
-            row += "</details>"
-            row += "</p>"
-        row += "</td></tr>"
-        return row
+        if test.error:
+            if test_steps_html:
+                html += "<p>"
+                html += "<blockquote>"
+                # last 3 steps as summary
+                html += "%s" % ''.join(test_steps_html[-2:])
+                html += "</blockquote>"
+                html += "</p>"
+            html += "<code>%s</code>" % test.error
+            html += "<br/><br/>"
+        if test_steps_html or test.error or test.jobs:
+            html += "<p>"
+            html += "<details><summary>Click to expand full logs</summary>"
+            html += "<br/>"
+            html += "<p><ins>Test steps:</ins></p>"
+            html += "<blockquote>"
+            html += "%s" % ''.join(test_steps_html)
+            html += "</blockquote>"
+            if test.error:
+                html += "<p><ins>Erorr:</ins></p>"
+                html += "<code>%s</code>" % test.error
+                html += "<br/><br/>"
+            if test.jobs:
+                html += self.build_device_sessions_html(test.jobs)
+            html += "</details>"
+            html += "</p>"
+        html += "</td></tr>"
+        return html
 
     def get_sauce_job_url(self, job_id):
         token = hmac.new(bytes(self.sauce_username + ":" + self.sauce_access_key, 'latin-1'),
