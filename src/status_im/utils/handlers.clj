@@ -37,7 +37,7 @@
 
 (defmacro merge-fx
   "Takes a map of co-effects and forms as argument.
-  The first optional form can be a litteral map of effects/
+  The first optional form can be map of effects/
   The next forms are functions applying effects and returning a map of effects.
   The macro ensures that updates to db are passed from function to function within the cofx :db key and
   that only a :merging-fx-with-common-keys effect is returned if some functions are trying
@@ -45,7 +45,8 @@
   {:added "1.0"}
   [cofx & forms]
   (let [form (first forms)]
-    (if (map? form)
+    (if (or (symbol? form)
+            (map? form))
       `(merge-fx* ~form ~cofx ~@(next forms))
       `(merge-fx* {} ~cofx ~@forms))))
 

@@ -277,7 +277,7 @@
   (fn [{:keys [db] :as cofx} [chat-id event]]
     (if (get (:chats db) chat-id)
       {:db (assoc-in db [:chats chat-id :chat-loaded-event] event)}
-      (-> (models/add-chat cofx chat-id) ; chat not created yet, we have to create it
+      (-> (models/add-chat chat-id cofx) ; chat not created yet, we have to create it
           (assoc-in [:db :chats chat-id :chat-loaded-event] event)))))
 
 ;; TODO(janherich): remove this unnecessary event in the future (only model function `add-chat` will stay)
@@ -285,7 +285,7 @@
   :add-chat
   [(re-frame/inject-cofx :get-stored-chat) re-frame/trim-v]
   (fn [cofx [chat-id chat-props]]
-    (models/add-chat cofx chat-id chat-props)))
+    (models/add-chat chat-id chat-props cofx)))
 
 (defn navigate-to-chat
   "Takes coeffects map and chat-id, returns effects necessary for navigation and preloading data"
@@ -311,7 +311,7 @@
     (when (not= (:current-public-key db) contact-id) ; don't allow to open chat with yourself
       (if (get (:chats db) contact-id)
         (navigate-to-chat cofx contact-id navigation-replace?) ; existing chat, just preload and displey
-        (let [add-chat-fx (models/add-chat cofx contact-id)] ; new chat, create before preload & display
+        (let [add-chat-fx (models/add-chat contact-id cofx)] ; new chat, create before preload & display
           (merge add-chat-fx
                  (navigate-to-chat (assoc cofx :db (:db add-chat-fx))
                                    contact-id
@@ -322,29 +322,13 @@
   :update-chat!
   [re-frame/trim-v]
   (fn [cofx [chat]]
-    (models/update-chat cofx chat)))
-
-(handlers/register-handler-fx
-  :remove-chat
-  [re-frame/trim-v]
-  (fn [{:keys [db]} [chat-id]]
-    (let [{:keys [chat-id group-chat debug?]} (get-in db [:chats chat-id])]
-      (cond-> {:db                      (-> db
-                                            (update :chats dissoc chat-id)
-                                            (update :deleted-chats (fnil conj #{}) chat-id))
-               :delete-pending-messages chat-id}
-        (or group-chat debug?)
-        (assoc :delete-messages chat-id)
-        debug?
-        (assoc :delete-chat chat-id)
-        (not debug?)
-        (assoc :deactivate-chat chat-id)))))
+    (models/update-chat chat cofx)))
 
 (handlers/register-handler-fx
   :delete-chat
   [re-frame/trim-v]
   (fn [cofx [chat-id]]
-    (-> (models/remove-chat cofx chat-id)
+    (-> (models/remove-chat chat-id cofx)
         (update :db navigation/replace-view :home))))
 
 (handlers/register-handler-fx

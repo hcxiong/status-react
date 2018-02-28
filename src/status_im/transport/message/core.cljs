@@ -1,5 +1,6 @@
 (ns status-im.transport.message.core
-  (:require [status-im.chat.models :as models.chat]))
+  (:require [status-im.utils.handlers :as handlers]
+            [status-im.chat.models :as models.chat]))
 
 (def ping-topic "0x01010202")
 
@@ -40,12 +41,13 @@
                          :name             name
                          :fcm-token        fcm-token
                          :pending?         true}
-          fx            {:db           (update-in db [:contacts/contacts public-key] merge contact-props)
-                         :save-contact contact-props}
           chat-props    {:name         name
                          :chat-id      public-key
                          :contact-info (prn-str contact-props)}]
-      (merge fx (models.chat/add-chat (assoc cofx :db (:db fx)) public-key chat-props)))))
+      (handlers/merge-fx cofx
+                         {:db           (update-in db [:contacts/contacts public-key] merge contact-props)
+                          :save-contact contact-props}
+                         (models.chat/add-chat public-key chat-props)))))
 
 (defn- receive-contact-request-confirmation
   [public-key {:keys [name profile-image address fcm-token]}
@@ -55,9 +57,10 @@
                          :address          address
                          :photo-path       profile-image
                          :name             name
-                         :fcm-token        fcm-token}
-          fx            {:db           (update-in db [:contacts/contacts public-key] merge contact-props)
-                         :save-contact contact-props}
+                         :fcm-token        fcm-token} 
           chat-props    {:name    name
                          :chat-id public-key}]
-      (merge fx (models.chat/upsert-chat (assoc cofx :db (:db fx)) chat-props)))))
+      (handlers/merge-fx cofx
+                         {:db           (update-in db [:contacts/contacts public-key] merge contact-props)
+                          :save-contact contact-props}
+                         (models.chat/upsert-chat chat-props)))))
